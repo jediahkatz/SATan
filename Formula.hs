@@ -1,3 +1,5 @@
+module Formula where
+
 type Var = Int
 type Lit = Int
 
