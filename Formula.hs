@@ -26,6 +26,7 @@ type Assignment = IntMap Value
 
 -- True, False, Undefined
 data Value = T | F | U
+  deriving (Eq, Show)
   
 -- Get the value of a literal in a given assignment.
 val :: Lit -> Assignment -> Value
