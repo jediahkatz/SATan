@@ -2,8 +2,9 @@ module Formula where
 
 --  Eventually test with Strict variants
 import Data.IntMap.Lazy (IntMap, findWithDefault)
-import qualified Data.IntMap.Lazy as IntMap
-import State (State)
+--import qualified Data.IntMap.Lazy as IntMap
+import Control.Monad.State.Lazy(State)
+--import State (State)
 
 type Var = Int
 type Lit = Int
@@ -24,6 +25,8 @@ type Clause = [Lit]
 type CNF = [Clause]
 
 type Assignment = IntMap Value
+
+type Solver = CNF -> Maybe Assignment
 
 -- True, False, Undefined
 data Value = T | F | U
@@ -57,6 +60,7 @@ unitPropagate = undefined
 -- Return the next decision literal, or Nothing
 -- if all literals have been assigned.
 pickLiteral :: SolverState -> Maybe Lit
+pickLiteral = undefined
 
 --dpll = do
 --  s <- unitPropagate
