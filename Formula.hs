@@ -5,6 +5,7 @@ import Data.IntMap.Lazy (IntMap, findWithDefault, insert)
 --import qualified Data.IntMap.Lazy as IntMap
 import Control.Monad.State.Lazy(State, get, put)
 --import State (State)
+import Data.List (find)
 
 type Var = Int
 type Lit = Int
@@ -36,9 +37,10 @@ data Value = T | F | U
 val :: Lit -> Assignment -> Value
 val = findWithDefault U
 
--- Solver state containing current assignment
+-- Solver state containing number of variables, current assignment
 -- and propagation queue (data structures can change).
 data SolverState = SS {
+  n :: Int,
   ass :: Assignment,
   propQ :: [Lit]
 }
@@ -49,31 +51,34 @@ data SolverState = SS {
 -- to the end of the propQ if it was unassigned.
 assume :: Lit -> State SolverState Bool
 assume x = do
-  SS {ass=a, propQ=q} <- get
+  ss@(SS {ass=a, propQ=q}) <- get
   case (val x a) of
     F -> return False
     T -> return True
     U -> (do
-      put SS {ass=insert x T a, propQ = (neg x):q} 
+      put (ss {ass=insert x T a, propQ = (neg x):q})
       return True)
 
 -- Repeatedly attempt unit propagation until the
 -- propagation queue is empty, updating the SolverState.
--- If at any point, we assume a conflict, then
+-- If at any point, we encounter a conflict, then
 -- unitPropagate returns False. Otherwise it returns True.
 unitPropagate :: State SolverState Bool
 unitPropagate = undefined
 
 -- Return the next decision literal, or Nothing
 -- if all literals have been assigned.
-pickLiteral :: SolverState -> Maybe Lit
-pickLiteral = undefined
+pickLiteral :: State SolverState (Maybe Lit)
+pickLiteral = do
+  SS {ass=a, n=n'} <- get
+  return (find (\l -> val l a == U) [1..n'])
 
-
+dpllHelper :: State SolverState ()
+dpllHelper = undefined
 
 --dpll = do
 --  s <- unitPropagate
---  x = selectVariable
+--  x = pickLiteral
 --  dpll (assume x)
 --  dpll (assume not x)
 --  unsat
