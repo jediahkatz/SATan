@@ -1,6 +1,7 @@
 module Formula where
 
-import Data.IntMap.Lazy (IntMap, findWithDefault)
+import Data.IntMap.Lazy (IntMap, findWithDefault, lookup)
+import qualified Data.IntMap.Lazy as IntMap
 
 type Var = Int
 type Lit = Int
@@ -20,7 +21,8 @@ neg = negate
 type Clause = [Lit]
 type CNF = [Clause]
 
-type Assignment = IntMap Value
+-- Maps VARIABLES (not Literals!) to True/False
+type Assignment = IntMap Bool
 
 type Solver = CNF -> Maybe Assignment
 
@@ -30,4 +32,18 @@ data Value = T | F | U
   
 -- Get the value of a literal in a given assignment.
 val :: Lit -> Assignment -> Value
-val = findWithDefault U
+val l a = if isPos l 
+  then
+    case (IntMap.lookup l a) of
+      Just True   -> T
+      Just False  -> F
+      Nothing     -> U
+  else
+    case (IntMap.lookup (neg l) a) of
+      Just True   -> F
+      Just False  -> T
+      Nothing     -> U
+      
+-- Set the value of a LITERAL (not a variable) in the assignment
+assign :: Lit -> Bool -> Assignment -> Assignment
+assign = undefined
