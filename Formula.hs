@@ -1,9 +1,9 @@
 module Formula where
 
 --  Eventually test with Strict variants
-import Data.IntMap.Lazy (IntMap, findWithDefault)
+import Data.IntMap.Lazy (IntMap, findWithDefault, insert)
 --import qualified Data.IntMap.Lazy as IntMap
-import Control.Monad.State.Lazy(State)
+import Control.Monad.State.Lazy(State, get, put)
 --import State (State)
 
 type Var = Int
@@ -48,7 +48,14 @@ data SolverState = SS {
 -- Otherwise return True and add its negation
 -- to the end of the propQ if it was unassigned.
 assume :: Lit -> State SolverState Bool
-assume = undefined
+assume x = do
+  SS {ass=a, propQ=q} <- get
+  case (val x a) of
+    F -> return False
+    T -> return True
+    U -> (do
+      put SS {ass=insert x T a, propQ = (neg x):q} 
+      return True)
 
 -- Repeatedly attempt unit propagation until the
 -- propagation queue is empty, updating the SolverState.
@@ -61,6 +68,8 @@ unitPropagate = undefined
 -- if all literals have been assigned.
 pickLiteral :: SolverState -> Maybe Lit
 pickLiteral = undefined
+
+
 
 --dpll = do
 --  s <- unitPropagate
