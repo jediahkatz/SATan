@@ -73,13 +73,24 @@ pickLiteral = do
   SS {ass=a, n=n'} <- get
   return (find (\l -> val l a == U) [1..n'])
 
-dpllHelper :: State SolverState ()
+-- Stateful DPLL helper that attempts to find a satisfying
+-- assignment given the partial assignment represented by
+-- its initial state. It returns True if one is found, and 
+-- False if we encounter a conflict.
+dpllHelper :: State SolverState Bool
 dpllHelper = undefined
-
---dpll = do
---  s <- unitPropagate
---  x = pickLiteral
---  dpll (assume x)
---  dpll (assume not x)
---  unsat
+--dpllHelper = do
+--  b <- unitPropagate
+--  // return False if b is False
+--  x <- pickLiteral
+--  // return True if x is Nothing
+--  ss <- get
+--  assume x
+--  b' <- dpllHelper
+--  // return True if b is True
+--  put ss
+--  assume (not x)
+--  b'' <- dpllHelper
+--  return b''
   
+solve :: CNF -> Maybe Assignment
