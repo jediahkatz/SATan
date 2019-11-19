@@ -39,14 +39,22 @@ propagateOneClause _ [] = return False
 -- The clause became empty; conflict.
 propagateOneClause _ [_] = return False
 propagateOneClause l c = do
-  ss@(SS {s_ass=a, s_wlm=wlm, s_wl=wl}) <- get
+  ss@(SS {s_ass=a, s_wlm=wlm, s_wl=wl, s_propQ=q}) <- get
   if satisfiedByWatchedLit c wlm a 
   then return True 
   else
-    let ml' = findNewWatchedLit c wlm a in
-    case ml' of
+    case (findNewWatchedLit c wlm a) of
       -- do unit propagation
-      Nothing -> undefined
+      Nothing -> do
+        case (watchedLits c wlm) of
+          -- The clause became empty; conflict. This is redundant with 2nd pattern.
+          Left _ -> return False
+          
+          -- add negation of the other watched literal to the propagation queue
+          Right (l1, l2) -> do
+            put (ss {s_propQ=(impliedLit:q)})
+            return True
+              where impliedLit = if l1 == l then neg l2 else neg l1
       -- fix watched literal invariant
       Just l' -> do 
         put (ss {s_wlm=wlm', s_wl=wl'}) 
