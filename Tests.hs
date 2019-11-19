@@ -106,6 +106,31 @@ prop_instantiate p v = let p' = unwrapCNF p in
 prop_sat1 :: QCNF -> Bool
 prop_sat1 s = let s' = unwrapCNF s in isJust (sat1 s') == isJust (sat0 s')
 
+-- Tests for functions in Formula.hs
+
+--tests for val
+
+sampleAssignment' :: Assignment
+sampleAssignment' = IntMap.fromList [(1, True), (2, False), (3, True)]
+
+valTest :: Test
+valTest = TestList [
+  val 1 sampleAssignment' ~?= T,
+  val (-1) sampleAssignment' ~?= F,
+  val 2 sampleAssignment' ~?= F,
+  val (-2) sampleAssignment' ~?= T,
+  val 4 sampleAssignment' ~?= U,
+  val (-4) sampleAssignment' ~?= U]
+
+
+assignTest :: Test
+assignTest = TestList [
+  val 1 (assign 1 True sampleAssignment') ~?= T,
+  val 2 (assign 2 True sampleAssignment') ~?= T,
+  val 3 (assign 3 False sampleAssignment') ~?= F,
+  val 4 (assign 1 False sampleAssignment') ~?= U,
+  val 2 (assign (-2) True sampleAssignment') ~?= F]
+
 -- Tests for functions in Watching.hs
 
 sampleClause1 :: Clause
