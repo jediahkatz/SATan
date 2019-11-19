@@ -3,9 +3,15 @@
 
 import Basic
 import Formula
+import Watching
 import Test.HUnit (Test(..), (~:), (~?=), runTestTT, assertBool)
 import Test.QuickCheck
 import Data.Maybe as Maybe
+import Data.Map(fromList, empty)
+import qualified Data.Map as Map
+import Data.IntMap(fromList)
+import qualified Data.IntMap as IntMap
+
 
 
 -- Arbitrary instance for formulas
@@ -99,3 +105,66 @@ prop_instantiate p v = let p' = unwrapCNF p in
 
 prop_sat1 :: QCNF -> Bool
 prop_sat1 s = let s' = unwrapCNF s in isJust (sat1 s') == isJust (sat0 s')
+
+-- Tests for functions in Watching.hs
+
+sampleClause1 :: Clause
+sampleClause1 = [1]
+
+sampleClause2 :: Clause
+sampleClause2 = [1, 2, 3]
+
+sampleClause3 :: Clause
+sampleClause3 = [1, -2, 3, -5, 4, 1]
+
+sampleMap :: WatchedLitsMap
+sampleMap = Map.fromList ([(sampleClause2, (1, 2)),
+  (sampleClause3, (-2, 3))]) 
+
+-- watchedLits
+watchedLitsTest :: Test
+watchedLitsTest = TestList [
+  watchedLits sampleClause2 sampleMap ~?= Right (1,2),
+  watchedLits sampleClause3 sampleMap ~?= Right (-2,3),
+  watchedLits sampleClause1 empty ~?= Left 1,
+  watchedLits [] sampleMap ~?= Left 0,
+  watchedLits [8, 6, 7] sampleMap ~?= Left 0 ]
+
+-- isWatching
+isWatchingTest :: Test
+isWatchingTest = TestList [
+  isWatching sampleClause1 1 empty ~?= True,
+  isWatching sampleClause1 2 empty ~?= False,
+  isWatching sampleClause2 1 sampleMap ~?= True,
+  isWatching sampleClause2 2 sampleMap ~?= True,
+  isWatching sampleClause2 3 sampleMap ~?= False,
+  isWatching [] 0 sampleMap ~?= False]
+
+sampleAssignment :: Assignment
+sampleAssignment = IntMap.fromList [(1, True), (2, True)]
+
+-- satisfiedByWatchedLit
+satisfiedByWatchedLitTest :: Test
+satisfiedByWatchedLitTest = TestList [
+  satisfiedByWatchedLit sampleClause1 sampleMap sampleAssignment ~?= True,
+  satisfiedByWatchedLit sampleClause2 sampleMap sampleAssignment ~?= True,
+  satisfiedByWatchedLit sampleClause3 sampleMap sampleAssignment ~?= False,
+  satisfiedByWatchedLit [] sampleMap sampleAssignment ~?= False]
+
+--findNewWatchedLit
+findNewWatchedLitTest :: Test
+findNewWatchedLitTest = TestList [
+  findNewWatchedLit sampleClause1 sampleMap sampleAssignment ~?= Nothing,
+  findNewWatchedLit sampleClause2 sampleMap sampleAssignment ~?= Just 3,
+  findNewWatchedLit sampleClause3 sampleMap sampleAssignment ~?= Just 1]
+
+sampleWatchList :: Watchlist
+sampleWatchList = IntMap.fromList [(1, [sampleClause1]), (2, [sampleClause1,
+  sampleClause2])]
+
+-- clausesWatching
+clausesWatchingTest :: Test
+clausesWatchingTest = TestList [
+  clausesWatching 1 sampleWatchList ~?= [sampleClause1],
+  clausesWatching 2 sampleWatchList ~?= [sampleClause1, sampleClause2],
+  clausesWatching 3 sampleWatchList ~?= []]

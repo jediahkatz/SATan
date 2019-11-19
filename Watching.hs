@@ -26,10 +26,12 @@ clausesWatching = findWithDefault []
 
 -- Is this clause watching this literal?
 isWatching :: Clause -> Lit -> WatchedLitsMap -> Bool
+isWatching [] _ _ = False
 isWatching c l w = case (watchedLits c w) of
   Left l'        -> l == l'
   Right (l1, l2) -> l == l1 || l == l2
-  
+
+--Is the clause satisfied by at least of the literals it is watching?
 satisfiedByWatchedLit :: Clause -> WatchedLitsMap -> Assignment -> Bool
 satisfiedByWatchedLit [] _ _ = False
 satisfiedByWatchedLit c wlm a = case (watchedLits c wlm) of
