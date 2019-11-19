@@ -193,3 +193,9 @@ clausesWatchingTest = TestList [
   clausesWatching 1 sampleWatchList ~?= [sampleClause1],
   clausesWatching 2 sampleWatchList ~?= [sampleClause1, sampleClause2],
   clausesWatching 3 sampleWatchList ~?= []]
+
+-- Tests for solver
+-- TODO: tests for intermediate steps
+
+prop_solve_equiv :: QCNF -> Bool
+prop_solve_equiv s = let s' = unwrapCNF s in isJust (solve s') == isJust (sat1 s')
