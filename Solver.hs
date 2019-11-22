@@ -1,3 +1,5 @@
+module Solver where
+
 import Data.List (find, delete)
 import Watching (Watchlist, WatchedLitsMap)
 import Control.Monad.State.Lazy(State, get, put)

@@ -9,8 +9,9 @@ import Test.QuickCheck
 import Data.Maybe as Maybe
 import Data.Map(fromList, empty)
 import qualified Data.Map as Map
-import Data.IntMap(fromList)
+import Data.IntMap(fromList, toList)
 import qualified Data.IntMap as IntMap
+import Solver(solve, SolverState(SS), s_wl, s_wlm)
 
 
 
@@ -196,6 +197,39 @@ clausesWatchingTest = TestList [
 
 -- Tests for solver
 -- TODO: tests for intermediate steps
+
+-- Invariants of the solver state
+
+-- 1. The watchedList and WatchedListsMap must agree, ie, if (l, c) is in
+--    the watchedList, then l must be in the list mapped to by c in the 
+--    watchedLitsMap
+
+-- We need a helper function
+
+-- Convert the watchList to a list of (Lit, Clause) pairs
+getLitPairs :: Watchlist -> [(Lit, Clause)]
+getLitPairs m = foldr inner [] (IntMap.toList m) where
+  inner :: (Lit, [Clause]) -> [(Lit, Clause)] -> [(Lit, Clause)]
+  inner (l, cs) acc = (map (\x -> (l, x)) cs) ++ acc
+
+getLitPairsTest :: Test 
+getLitPairsTest = TestList [
+  getLitPairs (IntMap.fromList [(1, [sampleClause1, sampleClause2]), (3, [sampleClause3])])
+  ~?= [(1, sampleClause1), (1, sampleClause2), (3, sampleClause3)],
+  getLitPairs IntMap.empty ~?= [],
+  getLitPairs (IntMap.fromList [(1, [sampleClause1, sampleClause2]), (3, [sampleClause1])])
+  ~?= [(1, sampleClause1), (1, sampleClause2), (3, sampleClause1)]]
+
+-- Now we want to make sure that for every (Lit, Clause) pair in the watchedList,
+-- isWatching returns true (with the watchedListsMap)
+mapsConsistent :: Watchlist -> WatchedLitsMap -> Bool
+mapsConsistent m1 m2 = all (\(l,c) -> isWatching c l m2) (getLitPairs m1)
+
+stateMapsConsistent :: SolverState -> Bool
+stateMapsConsistent SS{s_wl = m1, s_wlm = m2} = mapsConsistent m1 m2 
+
+-- Now, we can use this to show that the state maps are consistent after each
+-- intermediate step
 
 prop_solve_equiv :: QCNF -> Bool
 prop_solve_equiv s = let s' = unwrapCNF s in isJust (solve s') == isJust (sat1 s')
