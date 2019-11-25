@@ -123,20 +123,28 @@ pickLiteral = do
 -- its initial state. It returns True if one is found, and 
 -- False if we encounter a conflict.
 dpllHelper :: State SolverState Bool
-dpllHelper = undefined
---dpllHelper = do
---  b <- unitPropagate
---  // return False if b is False
---  x <- pickLiteral
---  // return True if x is Nothing
---  ss <- get
---  assume x
---  b' <- dpllHelper
---  // return True if b is True
---  put ss
---  assume (not x)
---  b'' <- dpllHelper
---  return b''
+dpllHelper = do
+  b <- unitPropagate
+  if b then do
+    mx <- pickLiteral
+    case mx of
+      Nothing -> return True
+      Just x  -> do 
+        ss <- get
+        b' <- assume x
+        if b' then do
+          br <- dpllHelper
+          return br
+        else do
+          put ss
+          b'' <- assume (neg x)
+          if b'' then do
+            br' <- dpllHelper
+            return br'
+          else
+            return False
+  else
+    return False
   
 solve :: CNF -> Maybe Assignment
 solve = undefined
