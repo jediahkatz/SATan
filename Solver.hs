@@ -95,7 +95,10 @@ propagateOneLiteral l (c:cs) = do
 propagateLiterals :: [Lit] -> State SolverState Bool
 propagateLiterals [] = return True
 propagateLiterals (l:ls) = do
+  -- error $ show (l:ls)
   SS {s_wl=wl} <- get
+  error $ show (l:ls)
+  -- error $ show (wl, l, clausesWatching l wl)
   b <- propagateOneLiteral l (clausesWatching l wl)
   if b then do
     b' <- propagateLiterals ls
@@ -110,6 +113,7 @@ propagateLiterals (l:ls) = do
 unitPropagate :: State SolverState Bool
 unitPropagate = do
   SS {s_propQ=q, s_wl=wl} <- get
+  --if q /= [] then error (show q) else do
   b <- propagateLiterals q
   return b
 
@@ -133,31 +137,20 @@ dpllHelper = do
       Nothing -> return True
       Just x  -> do 
         ss <- get
-        b' <- assume x
-        if b' then do
-          br <- dpllHelper
-          return br
+        assume x
+        bt <- dpllHelper
+        if bt then
+          return True
         else do
           put ss
-          b'' <- assume (neg x)
-          if b'' then do
-            br' <- dpllHelper
-            return br'
-          else
-            return False
+          assume (neg x)
+          bf <- dpllHelper
+          return bf
   else
     return False
 
-initialWatched :: CNF -> (Watchlist, WatchedLitsMap)
-initialWatched cnf = foldr (\cl acc -> let (wl, m) = acc in
-  case cl of
-    [] -> acc
-    [x] ->  (IntMap.adjust (cl:) x wl, m)
-    x : y : xs -> (IntMap.adjust (cl:) x (IntMap.adjust (cl:) y wl),
-      Map.insert cl (x,y) m)) (IntMap.empty, Map.empty) cnf
-
 initialState :: CNF -> SolverState
-initialState c = SS {s_n = maximum (map (\x -> if x == [] then 0 else maximum x) c), s_ass = IntMap.empty,
+initialState c = SS {s_n = maximum (map (\x -> if x == [] then 0 else maximum (map var x)) c), s_ass = IntMap.empty,
             s_propQ = [], s_wl = fst m, s_wlm = snd m} where 
                 m = initialWatched c
   
