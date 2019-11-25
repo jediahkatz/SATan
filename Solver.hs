@@ -85,18 +85,31 @@ propagateOneLiteral l (c:cs) = do
     return b'
   else
     return False
+    
+-- When list of literals that have been set to False, try to maintain the
+-- watched literal invariant for all clauses watching any literal in the list,
+-- or perform unit propagation if that isn't possible. Returns False
+-- if we ever encounter a conflict.
+propagateLiterals :: [Lit] -> State SolverState Bool
+propagateLiterals [] = return True
+propagateLiterals (l:ls) = do
+  SS {s_wl=wl} <- get
+  b <- propagateOneLiteral l (clausesWatching l wl)
+  if b then do
+    b' <- propagateLiterals ls
+    return b'
+  else
+    return False
 
 -- Repeatedly attempt unit propagation until the
 -- propagation queue is empty, updating the SolverState.
 -- If at any point, we encounter a conflict, then
 -- unitPropagate returns False. Otherwise it returns True.
--- unitPropagate :: State SolverState Bool
--- unitPropagate = do
-  -- SS {s_propQ=q, s_wl=wl} <- get
-  -- case q of
-    -- []     -> return True
-    -- -- l has been set to False
-    -- l:ls   -> map (propagateOneClause l) (clausesWatching l wl)
+unitPropagate :: State SolverState Bool
+unitPropagate = do
+  SS {s_propQ=q, s_wl=wl} <- get
+  b <- propagateLiterals q
+  return b
 
 -- Return the next decision literal, or Nothing
 -- if all literals have been assigned.
