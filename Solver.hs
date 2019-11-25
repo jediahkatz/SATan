@@ -70,21 +70,33 @@ propagateOneClause l c = do
             -- Add c to the Watchlist of l'
             l'Q = c : (clausesWatching l' wl)
             wl' = insert l' l'Q (insert l lQ wl)
-  
+
+
+-- When literal l, watched by a list of clauses, has been set to False, 
+-- try to maintain the watched literal invariant for all clauses in the
+-- list or perform unit propagation if that isn't possible. Returns
+-- False if we ever encounter a conflict.
+propagateOneLiteral :: Lit -> [Clause] -> State SolverState Bool
+propagateOneLiteral l [] = return True
+propagateOneLiteral l (c:cs) = do
+  b <- propagateOneClause l c
+  if b then do
+    b' <- propagateOneLiteral l cs
+    return b'
+  else
+    return False
 
 -- Repeatedly attempt unit propagation until the
 -- propagation queue is empty, updating the SolverState.
 -- If at any point, we encounter a conflict, then
 -- unitPropagate returns False. Otherwise it returns True.
-unitPropagate :: State SolverState Bool
-unitPropagate = undefined
--- do
+-- unitPropagate :: State SolverState Bool
+-- unitPropagate = do
   -- SS {s_propQ=q, s_wl=wl} <- get
   -- case q of
     -- []     -> return True
     -- -- l has been set to False
-    -- (l:ls) ->
-      -- map (propagateOneClause l) (clausesWatching l wl)
+    -- l:ls   -> map (propagateOneClause l) (clausesWatching l wl)
 
 -- Return the next decision literal, or Nothing
 -- if all literals have been assigned.
