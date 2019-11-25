@@ -11,7 +11,9 @@ import Data.Map(fromList, empty)
 import qualified Data.Map as Map
 import Data.IntMap(fromList, toList)
 import qualified Data.IntMap as IntMap
-import Solver(solve, SolverState(SS), s_wl, s_wlm)
+import Solver(solve, SolverState(SS), s_wl, s_wlm, assume)
+import Control.Monad.State.Lazy(State, execState)
+import Data.List(nub)
 
 
 
@@ -33,11 +35,15 @@ genLit    n = do
   if b == 0 then return (-n') else return n'
 
 genClause   :: Int -> Gen QClause
-genClause n = Disj <$> listOf (genLit n)
+genClause n = Disj <$> (do
+  l <- listOf (genLit n)
+  return (nub l))
 
 -- | Generate a random CNF with `n` distinct variables.
 genCNF      :: Int -> Gen QCNF
-genCNF    n = Conj <$> listOf (genClause n)
+genCNF    n = Conj <$> (do
+  l <- listOf (fmap unwrapClause (genClause n))
+  return (fmap Disj (nub (filter (/= []) l))))
 
 defaultNumVariables :: Int
 defaultNumVariables = 5
@@ -230,6 +236,9 @@ stateMapsConsistent SS{s_wl = m1, s_wlm = m2} = mapsConsistent m1 m2
 
 -- Now, we can use this to show that the state maps are consistent after each
 -- intermediate step
+
+prop_assumeConsistent :: Lit -> Bool
+prop_assumeConsistent l = undefined -- stateMapsConsistent (execState (assume l))
 
 prop_solve_equiv :: QCNF -> Bool
 prop_solve_equiv s = let s' = unwrapCNF s in isJust (solve s') == isJust (sat1 s')

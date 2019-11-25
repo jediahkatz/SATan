@@ -2,9 +2,11 @@ module Solver where
 
 import Data.List (find, delete)
 import Watching (Watchlist, WatchedLitsMap)
-import Control.Monad.State.Lazy(State, get, put)
-import Data.IntMap.Lazy (IntMap, insert)
+import Control.Monad.State.Lazy(State, get, put, runState)
+import Data.IntMap.Lazy (IntMap, insert, empty, adjust)
+import qualified Data.IntMap.Lazy as IntMap
 import Data.Map (Map, adjust)
+import qualified Data.Map.Lazy as Map
 import Formula
 import Watching
 
@@ -64,7 +66,7 @@ propagateOneClause l c = do
           where
             -- Make c watch l' instead of l
             updateWatched (l1, l2) = if l1 == l then (l', l2) else (l1, l')
-            wlm' = adjust updateWatched c wlm
+            wlm' = Map.adjust updateWatched c wlm
             -- Remove c from the Watchlist of l
             lQ = delete c (clausesWatching l wl)
             -- Add c to the Watchlist of l'
@@ -145,6 +147,22 @@ dpllHelper = do
             return False
   else
     return False
+
+initialWatched :: CNF -> (Watchlist, WatchedLitsMap)
+initialWatched cnf = foldr (\cl acc -> let (wl, m) = acc in
+  case cl of
+    [] -> acc
+    [x] ->  (IntMap.adjust (cl:) x wl, m)
+    x : y : xs -> (IntMap.adjust (cl:) x (IntMap.adjust (cl:) y wl),
+      Map.insert cl (x,y) m)) (IntMap.empty, Map.empty) cnf
+
+initialState :: CNF -> SolverState
+initialState c = SS {s_n = maximum (map (\x -> if x == [] then 0 else maximum x) c), s_ass = IntMap.empty,
+            s_propQ = [], s_wl = fst m, s_wlm = snd m} where 
+                m = initialWatched c
   
 solve :: CNF -> Maybe Assignment
-solve = undefined
+solve [] = Just (IntMap.empty)
+solve c = if [] `elem` c then Nothing else
+  let (b, s) = runState (dpllHelper) (initialState c)  in
+        if b then Just (s_ass s) else Nothing 

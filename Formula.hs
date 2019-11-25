@@ -46,4 +46,4 @@ val l a = if isPos l
       
 -- Set the value of a LITERAL (not a variable) in the assignment
 assign :: Lit -> Bool -> Assignment -> Assignment
-assign = undefined
+assign l b m = IntMap.insert (abs l) (if (isPos l) then b else not b) m
