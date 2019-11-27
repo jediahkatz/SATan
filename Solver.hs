@@ -54,11 +54,10 @@ propagateOneClause l c = do
           -- The clause became empty; conflict. This is redundant with 2nd pattern.
           Left _ -> return False
           
-          -- add negation of the other watched literal to the propagation queue
+          -- assume the other watched literal
           Right (l1, l2) -> do
-            put (ss {s_propQ=(impliedLit:q)})
-            return True
-              where impliedLit = if l1 == l then neg l2 else neg l1
+            assume impliedLit
+              where impliedLit = if l1 == l then l2 else l1
       -- fix watched literal invariant
       Just l' -> do 
         put (ss {s_wlm=wlm', s_wl=wl'}) 
@@ -87,24 +86,6 @@ propagateOneLiteral l (c:cs) = do
     return b'
   else
     return False
-    
--- When list of literals that have been set to False, try to maintain the
--- watched literal invariant for all clauses watching any literal in the list,
--- or perform unit propagation if that isn't possible. Returns False
--- if we ever encounter a conflict.
-propagateLiterals :: [Lit] -> State SolverState Bool
-propagateLiterals [] = return True
-propagateLiterals (l:ls) = do
-  -- error $ show (l:ls)
-  SS {s_wl=wl} <- get
-  error $ show (l:ls)
-  -- error $ show (wl, l, clausesWatching l wl)
-  b <- propagateOneLiteral l (clausesWatching l wl)
-  if b then do
-    b' <- propagateLiterals ls
-    return b'
-  else
-    return False
 
 -- Repeatedly attempt unit propagation until the
 -- propagation queue is empty, updating the SolverState.
@@ -112,10 +93,18 @@ propagateLiterals (l:ls) = do
 -- unitPropagate returns False. Otherwise it returns True.
 unitPropagate :: State SolverState Bool
 unitPropagate = do
-  SS {s_propQ=q, s_wl=wl} <- get
-  --if q /= [] then error (show q) else do
-  b <- propagateLiterals q
-  return b
+  ss@(SS {s_propQ=q, s_wl=wl}) <- get
+  case q of
+    []    -> return True
+    l:ls  -> do
+      put (ss {s_propQ=ls})
+      b <- propagateOneLiteral l (clausesWatching l wl)
+      if b then do
+        unitPropagate
+      else do
+        -- Empty the propQ manually on failure; we are about to backtrack.
+        put (ss {s_propQ=[]})
+        return False
 
 -- Return the next decision literal, or Nothing
 -- if all literals have been assigned.
