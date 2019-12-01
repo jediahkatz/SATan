@@ -202,7 +202,6 @@ clausesWatchingTest = TestList [
   clausesWatching 3 sampleWatchList ~?= []]
 
 -- Tests for solver
--- TODO: tests for intermediate steps
 
 -- Invariants of the solver state
 
@@ -235,10 +234,21 @@ stateMapsConsistent :: SolverState -> Bool
 stateMapsConsistent SS{s_wl = m1, s_wlm = m2} = mapsConsistent m1 m2 
 
 -- Now, we can use this to show that the state maps are consistent after each
--- intermediate step
+-- intermediate step, but we need to know the starting state. Not sure what the
+-- best way is
 
 prop_assumeConsistent :: Lit -> Bool
 prop_assumeConsistent l = undefined -- stateMapsConsistent (execState (assume l))
 
 prop_solve_equiv :: QCNF -> Bool
 prop_solve_equiv s = let s' = unwrapCNF s in isJust (solve s') == isJust (sat1 s')
+
+-- Some unit tests for the solver
+solverTest :: Test
+solverTest = TestList [
+  solve ([[-1]]) ~?= Just (IntMap.fromList [(1, False)]),
+  solve [[1], [2]] ~?= Just (IntMap.fromList [(1, True), (2, True)]),
+  solve [[1, 2], [-1]] ~?= Just (IntMap.fromList [(1, False), (2, True)]),
+  solve [[1], [-1]] ~?= Nothing,
+  solve [[1, 2], [-1, 3, 4], [-1, -3, 4], [-1, -3, -4], [-1, 3, -4]] ~?= Just (IntMap.fromList [(1, False), (2, True), (3, True), (4, True)]),
+  solve [[1,2], [-1, -2], [1, -2], [2, -1]] ~?= Nothing]
