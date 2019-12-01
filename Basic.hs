@@ -16,7 +16,7 @@ import qualified Data.IntSet as Set
 
 -- Is a literal satisfied by a given assingment?
 litSatisfied :: Assignment -> Lit -> Bool
-litSatisfied a l = Map.member l a && (isPos l == a Map.! l)
+litSatisfied a l = Map.member (var l) a && (isPos l == a Map.! (var l))
 
 --Is the CNF formula satisfied by a given assignment?
 satisfiedBy :: CNF -> Assignment -> Bool
@@ -52,9 +52,14 @@ sat0 c = foldr
 instantiate :: CNF -> Var -> Value -> CNF
 instantiate cs v b = foldr helper [] cs where
   helper :: Clause -> [Clause] -> [Clause]
-  helper ls rest = if v `elem` ls
-                          then rest
-                   else filter (/= -v) ls : rest
+  helper ls rest = case b of
+                    T -> if v `elem` ls
+                            then rest
+                            else filter (/= -v) ls : rest
+                    F -> if -v `elem` ls
+                            then rest
+                            else filter (/= v) ls : rest
+                    U -> rest
 
 
 sat1 :: Solver
