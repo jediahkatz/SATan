@@ -106,10 +106,10 @@ unitPropagate = do
         put (ss {s_propQ=[]})
         return False
 
--- Return the next decision literal, or Nothing
--- if all literals have been assigned.
-pickLiteral :: State SolverState (Maybe Lit)
-pickLiteral = do
+-- Return the next decision variable, or Nothing
+-- if all variables have been assigned.
+pickVariable :: State SolverState (Maybe Lit)
+pickVariable = do
   SS {s_ass=a, s_n=n} <- get
   return (find (\l -> val l a == U) [1..n])
 
@@ -121,17 +121,18 @@ dpllHelper :: State SolverState Bool
 dpllHelper = do
   b <- unitPropagate
   if b then do
-    mx <- pickLiteral
+    mx <- pickVariable
     case mx of
       Nothing -> return True
       Just x  -> do 
-        ss <- get
+        SS {s_ass=a} <- get
         assume x
         bt <- dpllHelper
         if bt then
           return True
         else do
-          put ss
+          ss <- get
+          put ss {s_ass=a}
           assume (neg x)
           bf <- dpllHelper
           return bf
