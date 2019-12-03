@@ -145,7 +145,7 @@ initialState f = SS {s_n = maximum (map (\x -> if x == [] then 0 else maximum (m
             s_propQ = [], s_wl = fst m, s_wlm = snd m} where 
                 m = initialWatched f
   
-solve :: CNF -> Maybe Assignment
+solve :: Solver
 solve [] = Just (IntMap.empty)
 solve f = if [] `elem` f then Nothing else
   let (b, s) = runState (dpllHelper (heatOrder f)) (initialState f)  in

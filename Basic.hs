@@ -14,7 +14,7 @@ import qualified Data.IntSet as Set
 --varSatCondition :: Lit -> Value
 --varSatCondition l = if (isPos l) then T else F
 
--- Is a literal satisfied by a given assingment?
+-- Is a literal satisfied by a given assignment?
 litSatisfied :: Assignment -> Lit -> Bool
 litSatisfied a l = Map.member (var l) a && (isPos l == a Map.! (var l))
 
@@ -62,10 +62,11 @@ instantiate cs v b = foldr helper [] cs where
                     U -> rest
 
 
+-- Worth noting; this solver might only return a satisfying partial assignment.
 sat1 :: Solver
 sat1 = sat Map.empty where
   sat m c =
-    if c `satisfiedBy` m then Just m
+    if null c then Just m
     else
       if [] `elem` c then Nothing -- see if unsatisfiable
       else
@@ -76,3 +77,53 @@ sat1 = sat Map.empty where
                     Nothing -> case sat m (instantiate c v F) of
                                 Just m' -> Just (Map.insert v False m')
                                 Nothing -> Nothing
+                                
+-- Naive DPLL, with unit propagation and pure literal elimination.
+unitClauses :: CNF -> [Lit]
+unitClauses f = [l | [l] <- f]
+
+simplifyUnitClause :: CNF -> Maybe (CNF, Var, Bool)
+simplifyUnitClause f = case unitClauses f of
+  []  -> Nothing
+  l:_ -> if l > 0 then
+          Just (instantiate f l T, l, True)
+         else
+          Just (instantiate f (abs l) F, l, False)
+  
+  
+pureLiterals :: CNF -> [(Var,Bool)]
+pureLiterals f = [(v, if p == 1 then False else True) | v <- vars f, p <- [1, -1],
+   all (notElem (p*v)) f ]
+
+simplifyPureLiteral :: CNF -> Maybe (CNF, Var, Bool)
+simplifyPureLiteral f = case pureLiterals f of
+  []      -> Nothing
+  (v,p):_ -> if p then
+              Just (instantiate f v T, v, p)
+             else
+              Just (instantiate f v F, v, p)
+
+dpll :: Solver
+dpll = sat Map.empty where
+  sat m f = 
+    if null f then Just m
+    else
+      if [] `elem` f then Nothing
+      else
+        case vars f of
+          []    -> Nothing
+          (v:_) -> case simplifyUnitClause f of
+            Just (f', v', p) -> case sat m f' of
+              Nothing -> Nothing
+              Just m' -> Just (Map.insert v' p m')
+              
+            Nothing -> case simplifyPureLiteral f of
+              Just (f', v', p) -> case sat m f' of
+                Nothing -> Nothing
+                Just m' -> Just (Map.insert v' p m')
+               
+              Nothing -> case sat m (instantiate f v T) of
+                Just m' -> Just (Map.insert v True m')
+                Nothing -> case sat m (instantiate f v F) of
+                  Just m' -> Just (Map.insert v False m')
+                  Nothing -> Nothing
