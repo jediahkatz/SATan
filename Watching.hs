@@ -46,7 +46,7 @@ findNewWatchedLit c wlm a = find (\l -> not (isWatching c l wlm || val l a == F)
 
 -- Initial watched literal state for a CNF.
 initialWatched :: CNF -> (Watchlist, WatchedLitsMap)
-initialWatched cnf = foldr (\c acc -> let (wl, wlm) = acc in
+initialWatched f = foldr (\c acc -> let (wl, wlm) = acc in
   let addCToWatchlist = (\ml -> case ml of
                               Nothing -> Just [c]
                               Just l  -> Just (c:l)) in
@@ -58,5 +58,5 @@ initialWatched cnf = foldr (\c acc -> let (wl, wlm) = acc in
       let wl' = IntMap.alter addCToWatchlist x wl in
       let wl'' = IntMap.alter addCToWatchlist y wl' in
       (wl'', Map.insert c (x, y) wlm))
-  ) (IntMap.empty, Map.empty) cnf
+  ) (IntMap.empty, Map.empty) f
 

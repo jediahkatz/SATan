@@ -108,7 +108,7 @@ unitPropagate = do
 
 -- Return the next decision variable, or Nothing
 -- if all variables have been assigned.
-pickVariable :: State SolverState (Maybe Lit)
+pickVariable :: State SolverState (Maybe Var)
 pickVariable = do
   SS {s_ass=a, s_n=n} <- get
   return (find (\l -> val l a == U) [1..n])
@@ -140,12 +140,12 @@ dpllHelper = do
     return False
 
 initialState :: CNF -> SolverState
-initialState c = SS {s_n = maximum (map (\x -> if x == [] then 0 else maximum (map var x)) c), s_ass = IntMap.empty,
+initialState f = SS {s_n = maximum (map (\x -> if x == [] then 0 else maximum (map var x)) f), s_ass = IntMap.empty,
             s_propQ = [], s_wl = fst m, s_wlm = snd m} where 
-                m = initialWatched c
+                m = initialWatched f
   
 solve :: CNF -> Maybe Assignment
 solve [] = Just (IntMap.empty)
-solve c = if [] `elem` c then Nothing else
-  let (b, s) = runState (dpllHelper) (initialState c)  in
+solve f = if [] `elem` f then Nothing else
+  let (b, s) = runState (dpllHelper) (initialState f)  in
         if b then Just (s_ass s) else Nothing 
