@@ -9,6 +9,7 @@ import Data.Map (Map, adjust)
 import qualified Data.Map.Lazy as Map
 import Formula
 import Watching
+import VarSelection
 
 -- Solver state containing number of variables, current assignment
 -- and propagation queue (data structures can change).
@@ -108,33 +109,33 @@ unitPropagate = do
 
 -- Return the next decision variable, or Nothing
 -- if all variables have been assigned.
-pickVariable :: State SolverState (Maybe Var)
-pickVariable = do
+pickVariable :: [Var] -> State SolverState (Maybe Var)
+pickVariable varOrdering = do
   SS {s_ass=a, s_n=n} <- get
-  return (find (\l -> val l a == U) [1..n])
+  return (find (\l -> val l a == U) varOrdering)
 
 -- Stateful DPLL helper that attempts to find a satisfying
 -- assignment given the partial assignment represented by
 -- its initial state. It returns True if one is found, and 
 -- False if we encounter a conflict.
-dpllHelper :: State SolverState Bool
-dpllHelper = do
+dpllHelper :: [Var] -> State SolverState Bool
+dpllHelper varOrdering = do
   b <- unitPropagate
   if b then do
-    mx <- pickVariable
+    mx <- pickVariable varOrdering
     case mx of
       Nothing -> return True
       Just x  -> do 
         SS {s_ass=a} <- get
         assume x
-        bt <- dpllHelper
+        bt <- dpllHelper varOrdering
         if bt then
           return True
         else do
           ss <- get
           put ss {s_ass=a}
           assume (neg x)
-          bf <- dpllHelper
+          bf <- dpllHelper varOrdering
           return bf
   else
     return False
@@ -147,5 +148,5 @@ initialState f = SS {s_n = maximum (map (\x -> if x == [] then 0 else maximum (m
 solve :: CNF -> Maybe Assignment
 solve [] = Just (IntMap.empty)
 solve f = if [] `elem` f then Nothing else
-  let (b, s) = runState (dpllHelper) (initialState f)  in
+  let (b, s) = runState (dpllHelper (heatOrder f)) (initialState f)  in
         if b then Just (s_ass s) else Nothing 

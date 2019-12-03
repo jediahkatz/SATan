@@ -1,3 +1,5 @@
+module VarSelection where
+
 import Control.Monad.State.Lazy(State, get, put)
 import Data.IntMap.Lazy (IntMap, insertWith, findWithDefault)
 import qualified Data.IntMap.Lazy as IntMap
@@ -51,7 +53,7 @@ getOccurList f = foldr (\c acc ->
   ) IntMap.empty f
 
 -- Increase the heat of clauses whose literals occur 
--- in other hot clauses. Repeat until "convergence" a la simulated annealing.
+-- in other hot clauses. Repeat until "convergence".
 clauseBoostedHeats :: CNF -> Map Clause Float -> Float -> Map Clause Float
 clauseBoostedHeats f initHeats iters = 
   -- iters: the number of iterations until convergence (typically <= 10)
