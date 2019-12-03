@@ -5,6 +5,7 @@ import Solver(solve)
 import Data.IntMap.Lazy (toList)
 import Text.Read(readMaybe)
 import Basic(sat0, dpll)
+import System.TimeIt(timeIt)
 
 data SolverType =
   Satan
@@ -29,9 +30,9 @@ main =
            contents <- readFile str
            case parseDimacs contents of
             Nothing -> putStrLn "Sorry, I didn't understand that. Please try again." >> (loop s)
-            Just cnf -> putStrLn (case solve cnf of
+            Just cnf -> (timeIt $  putStrLn (case (getSolver s) cnf of
                                     Nothing -> "Unsatisfiable"
-                                    Just x -> "Satisfiable: A satsifying assignment is " ++ show (toList x)) >> (loop s)
+                                    Just x -> "Satisfiable: A satsifying assignment is " ++ show (toList x))) >> (loop s)
         "i" -> do
             putStrLn "Please enter a CNF in the form of a list of lists of nonzero numbers."
             putStrLn "For instance, the list '[[1, 2], [-1]]' represents the formula (x_1 \\/ x_2) /\\ not(x_1)"
@@ -39,9 +40,9 @@ main =
             case (readMaybe str) of
               Nothing -> putStrLn "Sorry, I didn't understand that. Make sure you format your formula as a list. Please try again" >> (loop s)
               Just r ->
-                putStrLn (case (solve r) of
+                timeIt $ (putStrLn (case ((getSolver s) r) of
                             Nothing -> "Unsatisfiable" 
-                            Just x -> "Satisfiable: A satisfying assignment is " ++ show (toList x)) >> (loop s)
+                            Just x -> "Satisfiable: A satisfying assignment is " ++ show (toList x))) >> (loop s)
         _ -> putStrLn "Sorry, I didn't understand that. Please try again." >> (loop s)
     solverLoop :: SolverType -> IO()
     solverLoop s = do
