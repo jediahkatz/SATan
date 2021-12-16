@@ -2,4 +2,6 @@
 *.hi
 benchmarks/
 *.planning
+*.paper
 Main
+dist-newstyle/
